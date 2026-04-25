@@ -116,29 +116,35 @@ function createCard(name,rating,reason,price,type,location){
 
 // 收藏
 function toggleFav(name,type,location){
-    fetch(`${API_BASE}/saveFav`, {
-    method: "POST",
-    headers: {
-        "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-        user_id: USER_ID,
-        name: name,
-        type: type,
-        location: location
-    })
-})
-.then(res => res.json())
-.then(data => {
-    console.log(data);
-    alert("已收藏🔥");
-})
-.catch(err => {
-    console.error(err);
-    alert("錯誤！");
-});
-}
 
+    // 🔥 先給使用者反應（一定會看到）
+    alert("🔄 正在加入收藏...");
+
+    fetch(`${API_BASE}/saveFav`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            user_id: USER_ID,
+            name: name,
+            type: type,
+            location: location
+        })
+    })
+    .then(res => {
+        console.log("status:", res.status);
+        return res.json();
+    })
+    .then(data => {
+        console.log("成功:", data);
+        alert("✅ 已加入收藏！");
+    })
+    .catch(err => {
+        console.error("錯誤:", err);
+        alert("❌ 收藏失敗（看Console）");
+    });
+}
 // 顯示收藏
 function showFav(){
     fetch(`${API_BASE}/getFav?user_id=${USER_ID}`)
