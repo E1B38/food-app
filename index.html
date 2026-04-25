@@ -225,16 +225,31 @@ function setFood(type){
 
 // 推薦
 function search(){
+
     result.innerHTML="🔄 查詢中...";
 
     fetch(`${API_BASE}/recommend?location=${location.value}&food_type=${food.value}&budget=${budget.value}`)
     .then(r=>r.json())
     .then(data=>{
+
+        console.log(data); // 🔥 加這行（看回傳）
+
+        // ❗防呆（重點）
+        if(!data.recommendations || data.recommendations.length === 0){
+            result.innerHTML = "❌ 沒有找到餐廳";
+            return;
+        }
+
         let html="";
         data.recommendations.forEach(r=>{
             html+=createCard(r.name,r.rating,r.reason,r.price,food.value,location.value);
         });
+
         result.innerHTML=html;
+    })
+    .catch(err=>{
+        console.error(err);
+        result.innerHTML="❌ 發生錯誤";
     });
 }
 
