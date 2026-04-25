@@ -32,7 +32,7 @@ button { width:100%; padding:12px; margin-top:10px; border-radius:8px; border:no
     <button onclick="login()">登入</button>
 </div>
 
-<!-- ✅ 主畫面 -->
+<!-- ✅ 主畫面（預設隱藏） -->
 <div id="appSection" style="display:none;">
 
     <!-- 👤 使用者 -->
@@ -76,7 +76,7 @@ button { width:100%; padding:12px; margin-top:10px; border-radius:8px; border:no
 <script>
 const API_BASE = "https://39i46pikt1.execute-api.us-east-1.amazonaws.com";
 
-// 🔐 Cognito（記得填你的）
+// 🔐 換成你的 Cognito
 const poolData = {
     UserPoolId: "你的UserPoolId",
     ClientId: "你的ClientId"
@@ -84,19 +84,18 @@ const poolData = {
 
 const userPool = new AmazonCognitoIdentity.CognitoUserPool(poolData);
 
-// 🎯 UI切換（核心🔥）
+// 🎯 UI切換（核心）
 function checkUI(){
-
     let user = localStorage.getItem("user_id");
     let username = localStorage.getItem("username");
 
     if(user){
-        document.getElementById("authSection").style.display = "none";
-        document.getElementById("appSection").style.display = "block";
-        document.getElementById("userName").innerText = username;
+        authSection.style.display = "none";
+        appSection.style.display = "block";
+        userName.innerText = username;
     }else{
-        document.getElementById("authSection").style.display = "block";
-        document.getElementById("appSection").style.display = "none";
+        authSection.style.display = "block";
+        appSection.style.display = "none";
     }
 }
 
@@ -137,7 +136,7 @@ function login(){
 
             alert("登入成功🔥");
 
-            checkUI(); // 🔥 切畫面
+            checkUI();
         },
         onFailure: function(err){
             alert(err.message);
@@ -168,8 +167,7 @@ function setFood(type){
 
 // 推薦
 function search(){
-    let resultDiv = document.getElementById("result");
-    resultDiv.innerHTML = "🔄 查詢中...";
+    result.innerHTML = "🔄 查詢中...";
 
     fetch(`${API_BASE}/recommend?location=${location.value}&food_type=${food.value}&budget=${budget.value}`)
     .then(res=>res.json())
@@ -178,7 +176,7 @@ function search(){
         data.recommendations.forEach(r=>{
             html+=createCard(r.name,r.rating,r.reason,r.price,food.value,location.value);
         });
-        resultDiv.innerHTML=html;
+        result.innerHTML=html;
     });
 }
 
