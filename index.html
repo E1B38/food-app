@@ -290,11 +290,8 @@ function spinWheel(){
     let matchLocation = !location || itemLoc.includes(inputLoc);
     let matchType = !food || (
     item.type &&
-    item.type.replace(/\s/g,'').toLowerCase()
-    .includes(food.replace(/\s/g,'').toLowerCase())
+    item.type.includes(food)
 );
-    return matchLocation && matchType;
-});
 
         // ❌ 沒符合條件
         if(filtered.length === 0){
