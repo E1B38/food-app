@@ -23,44 +23,51 @@ button { width:100%; padding:12px; margin-top:10px; border-radius:8px; border:no
 
 <div class="header">🍽️ 餐廳推薦</div>
 
-<!-- 👤 使用者狀態 -->
-<div id="userBar" style="background:#eee;padding:10px;text-align:center;">
-👤 未登入
+<!-- 🔐 登入畫面 -->
+<div id="authSection" class="container">
+    <h2>🔐 登入 / 註冊</h2>
+    <input id="username" placeholder="帳號">
+    <input id="password" type="password" placeholder="密碼">
+    <button onclick="register()">註冊</button>
+    <button onclick="login()">登入</button>
 </div>
 
-<div class="container">
+<!-- ✅ 主畫面 -->
+<div id="appSection" style="display:none;">
 
-<!-- 🔐 登入區 -->
-<input id="username" placeholder="帳號">
-<input id="password" type="password" placeholder="密碼">
-<button onclick="register()">註冊</button>
-<button onclick="login()">登入</button>
+    <!-- 👤 使用者 -->
+    <div style="background:#eee;padding:10px;text-align:right;">
+        👤 <span id="userName"></span>
+        <button onclick="logout()">登出</button>
+    </div>
 
-<hr>
+    <div class="container">
 
-🔍 搜尋餐廳
-<input id="keyword" placeholder="輸入餐廳名稱">
-<button onclick="searchByName()">搜尋</button>
+        🔍 搜尋餐廳
+        <input id="keyword" placeholder="輸入餐廳名稱">
+        <button onclick="searchByName()">搜尋</button>
 
-<hr>
+        <hr>
 
-📍 地點
-<input id="location" value="台北">
+        📍 地點
+        <input id="location" value="台北">
 
-🍜 類型
-<input id="food" value="日式">
-<div>
-<button class="quick-btn" onclick="setFood('日式')">日式</button>
-<button class="quick-btn" onclick="setFood('韓式')">韓式</button>
-<button class="quick-btn" onclick="setFood('台式')">台式</button>
-</div>
+        🍜 類型
+        <input id="food" value="日式">
+        <div>
+            <button class="quick-btn" onclick="setFood('日式')">日式</button>
+            <button class="quick-btn" onclick="setFood('韓式')">韓式</button>
+            <button class="quick-btn" onclick="setFood('台式')">台式</button>
+        </div>
 
-💰 預算
-<input id="budget" value="300">
+        💰 預算
+        <input id="budget" value="300">
 
-<button class="search-btn" onclick="search()">推薦餐廳</button>
-<button onclick="spinWheel()">🎲 不知道吃什麼</button>
-<button onclick="showFav()">📂 我的收藏</button>
+        <button class="search-btn" onclick="search()">推薦餐廳</button>
+        <button onclick="spinWheel()">🎲 不知道吃什麼</button>
+        <button onclick="showFav()">📂 我的收藏</button>
+
+    </div>
 
 </div>
 
@@ -69,7 +76,7 @@ button { width:100%; padding:12px; margin-top:10px; border-radius:8px; border:no
 <script>
 const API_BASE = "https://39i46pikt1.execute-api.us-east-1.amazonaws.com";
 
-// 🔐 Cognito設定（填你的）
+// 🔐 Cognito（記得填你的）
 const poolData = {
     UserPoolId: "你的UserPoolId",
     ClientId: "你的ClientId"
@@ -77,24 +84,26 @@ const poolData = {
 
 const userPool = new AmazonCognitoIdentity.CognitoUserPool(poolData);
 
-// 👤 UI更新
-function updateUserUI(){
+// 🎯 UI切換（核心🔥）
+function checkUI(){
+
+    let user = localStorage.getItem("user_id");
     let username = localStorage.getItem("username");
 
-    if(username){
-        document.getElementById("userBar").innerHTML = `
-        👤 ${username}
-        <button onclick="logout()">登出</button>
-        `;
+    if(user){
+        document.getElementById("authSection").style.display = "none";
+        document.getElementById("appSection").style.display = "block";
+        document.getElementById("userName").innerText = username;
     }else{
-        document.getElementById("userBar").innerHTML = `👤 未登入`;
+        document.getElementById("authSection").style.display = "block";
+        document.getElementById("appSection").style.display = "none";
     }
 }
 
 // 🔐 註冊
 function register(){
-    let u = document.getElementById("username").value;
-    let p = document.getElementById("password").value;
+    let u = username.value;
+    let p = password.value;
 
     userPool.signUp(u, p, [], null, function(err){
         if(err){ alert(err.message); return; }
@@ -105,16 +114,16 @@ function register(){
 // 🔐 登入
 function login(){
 
-    let username = document.getElementById("username").value;
-    let password = document.getElementById("password").value;
+    let u = username.value;
+    let p = password.value;
 
     let auth = new AmazonCognitoIdentity.AuthenticationDetails({
-        Username: username,
-        Password: password
+        Username: u,
+        Password: p
     });
 
     let user = new AmazonCognitoIdentity.CognitoUser({
-        Username: username,
+        Username: u,
         Pool: userPool
     });
 
@@ -124,10 +133,11 @@ function login(){
             let user_id = result.getIdToken().payload.sub;
 
             localStorage.setItem("user_id", user_id);
-            localStorage.setItem("username", username);
+            localStorage.setItem("username", u);
 
-            updateUserUI();
             alert("登入成功🔥");
+
+            checkUI(); // 🔥 切畫面
         },
         onFailure: function(err){
             alert(err.message);
@@ -138,11 +148,10 @@ function login(){
 // 🚪 登出
 function logout(){
     localStorage.clear();
-    updateUserUI();
-    alert("已登出");
+    checkUI();
 }
 
-// 🔥 取得 user_id
+// 👤 取得使用者
 function getUser(){
     let id = localStorage.getItem("user_id");
     if(!id){
@@ -154,7 +163,7 @@ function getUser(){
 
 // 類型
 function setFood(type){
-    document.getElementById("food").value = type;
+    food.value = type;
 }
 
 // 推薦
@@ -162,16 +171,12 @@ function search(){
     let resultDiv = document.getElementById("result");
     resultDiv.innerHTML = "🔄 查詢中...";
 
-    let location = document.getElementById("location").value;
-    let food = document.getElementById("food").value;
-    let budget = document.getElementById("budget").value;
-
-    fetch(`${API_BASE}/recommend?location=${location}&food_type=${food}&budget=${budget}`)
+    fetch(`${API_BASE}/recommend?location=${location.value}&food_type=${food.value}&budget=${budget.value}`)
     .then(res=>res.json())
     .then(data=>{
         let html="";
         data.recommendations.forEach(r=>{
-            html+=createCard(r.name,r.rating,r.reason,r.price,food,location);
+            html+=createCard(r.name,r.rating,r.reason,r.price,food.value,location.value);
         });
         resultDiv.innerHTML=html;
     });
@@ -179,17 +184,16 @@ function search(){
 
 // 搜尋
 function searchByName(){
-    let keyword=document.getElementById("keyword").value;
-    if(!keyword){ alert("請輸入餐廳名稱"); return;}
+    if(!keyword.value){ alert("請輸入餐廳名稱"); return;}
 
-    fetch(`${API_BASE}/recommend?location=${keyword}`)
+    fetch(`${API_BASE}/recommend?location=${keyword.value}`)
     .then(res=>res.json())
     .then(data=>{
         let html="";
         data.recommendations.forEach(r=>{
-            html+=createCard(r.name,r.rating,r.reason,r.price,"搜尋",keyword);
+            html+=createCard(r.name,r.rating,r.reason,r.price,"搜尋",keyword.value);
         });
-        document.getElementById("result").innerHTML=html;
+        result.innerHTML=html;
     });
 }
 
@@ -208,23 +212,19 @@ function createCard(name,rating,reason,price,type,location){
 
 // 收藏
 function toggleFav(name,type,location){
-
     let user_id = getUser();
     if(!user_id) return;
 
     fetch(`${API_BASE}/saveFav`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            user_id, name, type, location
-        })
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body:JSON.stringify({ user_id, name, type, location })
     })
     .then(()=>alert("已收藏🔥"));
 }
 
 // 收藏列表
 function showFav(){
-
     let user_id = getUser();
     if(!user_id) return;
 
@@ -238,18 +238,15 @@ function showFav(){
             <h3>${item.name}</h3>
             📍 ${item.location}<br>
             🍜 ${item.type}<br><br>
-            <button onclick="removeFav('${item.name}')">
-            ❌ 取消收藏
-            </button>
+            <button onclick="removeFav('${item.name}')">❌ 取消收藏</button>
             </div>`;
         });
-        document.getElementById("result").innerHTML=html;
+        result.innerHTML=html;
     });
 }
 
 // 刪除
 function removeFav(name){
-
     let user_id = getUser();
     if(!user_id) return;
 
@@ -263,7 +260,6 @@ function removeFav(name){
 
 // 🎡 轉盤
 function spinWheel(){
-
     let user_id = getUser();
     if(!user_id) return;
 
@@ -273,12 +269,9 @@ function spinWheel(){
 
         let list=data.favorites;
 
-        let location=document.getElementById("location").value.trim();
-        let food=document.getElementById("food").value.trim();
-
         let filtered=list.filter(item=>{
-            let m1=!location||item.location.includes(location);
-            let m2=!food||item.type.includes(food);
+            let m1=!location.value||item.location.includes(location.value);
+            let m2=!food.value||item.type.includes(food.value);
             return m1&&m2;
         });
 
@@ -287,13 +280,12 @@ function spinWheel(){
             return;
         }
 
-        let resultDiv=document.getElementById("result");
         let i=0,pick;
 
         let interval=setInterval(()=>{
             pick=filtered[Math.floor(Math.random()*filtered.length)];
 
-            resultDiv.innerHTML=`
+            result.innerHTML=`
             <div class="card">
             <h2>🎡 選擇中...</h2>
             <h3>${pick.name}</h3>
@@ -301,7 +293,7 @@ function spinWheel(){
 
             if(++i>12){
                 clearInterval(interval);
-                resultDiv.innerHTML=`
+                result.innerHTML=`
                 <div class="card">
                 <h2>🎯 今天吃這個！</h2>
                 <h1>${pick.name}</h1>
@@ -314,7 +306,8 @@ function spinWheel(){
     });
 }
 
-updateUserUI();
+// 🔥 初始化
+checkUI();
 </script>
 
 </body>
