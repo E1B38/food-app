@@ -247,47 +247,65 @@
         // 🎡 轉盤
         function spinWheel(){
 
-        fetch(`${API_BASE}/getFav?user_id=${USER_ID}`)
-        .then(res=>res.json())
-        .then(data=>{
+    fetch(`${API_BASE}/getFav?user_id=${USER_ID}`)
+    .then(res=>res.json())
+    .then(data=>{
 
-        let list=data.favorites;
+        let list = data.favorites;
 
         if(!list || list.length===0){
-        alert("還沒收藏餐廳！");
-        return;
+            alert("還沒收藏餐廳！");
+            return;
         }
 
-        let resultDiv=document.getElementById("result");
-        let i=0;
+        // 🔥 取得使用者輸入條件
+        let location = document.getElementById("location").value;
+        let food = document.getElementById("food").value;
+
+        // 🔥 過濾收藏
+        let filtered = list.filter(item => {
+            return (
+                (location === "" || item.location.includes(location)) &&
+                (food === "" || item.type.includes(food))
+            );
+        });
+
+        // 🔥 如果篩選後沒東西 → fallback
+        if(filtered.length === 0){
+            filtered = list;
+        }
+
+        let resultDiv = document.getElementById("result");
+        let i = 0;
         let pick;
 
-        let interval=setInterval(()=>{
-        pick=list[Math.floor(Math.random()*list.length)];
+        let interval = setInterval(()=>{
+            pick = filtered[Math.floor(Math.random()*filtered.length)];
 
-        resultDiv.innerHTML=`
-        <div class="card">
-        <h2>🎡 選擇中...</h2>
-        <h3>${pick.name}</h3>
-        </div>`;
+            resultDiv.innerHTML = `
+            <div class="card">
+                <h2>🎡 選擇中...</h2>
+                <h3>${pick.name}</h3>
+            </div>`;
 
-        i++;
+            i++;
 
-        if(i>12){
-        clearInterval(interval);
+            if(i>12){
+                clearInterval(interval);
 
-        resultDiv.innerHTML=`
-        <div class="card">
-        <h2>🎯 今天吃這個！</h2>
-        <h1>${pick.name}</h1>
-        📍 ${pick.location}<br>
-        🍜 ${pick.type}
-        </div>`;
-        }
+                resultDiv.innerHTML = `
+                <div class="card">
+                    <h2>🎯 今天吃這個！</h2>
+                    <h1>${pick.name}</h1>
+                    📍 ${pick.location}<br>
+                    🍜 ${pick.type}
+                </div>`;
+            }
 
         },150);
-        });
-        }
+
+    });
+}
 
     </script>
 
