@@ -289,10 +289,13 @@ function spinWheel(){
 
     let matchLocation = !location || itemLoc.includes(inputLoc);
 
-    let matchType = !food || (
-        item.type &&
-        item.type.includes(food)
-    );
+    let cleanFood = (food || "").replace(/\s/g,'').toLowerCase();
+    let cleanType = (item.type || "").replace(/\s/g,'').toLowerCase();
+
+    let matchType = 
+    !cleanFood ||
+    cleanType.includes(cleanFood) ||
+    cleanFood.includes(cleanType);
 
     return matchLocation && matchType; // ⭐ 必須有
 });
