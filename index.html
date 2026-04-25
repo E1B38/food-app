@@ -241,28 +241,112 @@ function showFav(){
     .then(r=>r.json())
     .then(data=>{
         let html="<h2>⭐ 我的收藏</h2>";
+
+        if(!data.favorites || data.favorites.length===0){
+            result.innerHTML="📭 沒有收藏";
+            return;
+        }
+
         data.favorites.forEach(i=>{
-            html+=`<div class="card">🍽️ ${i.name}</div>`;
+            html+=`
+            <div class="card">
+                <h3>🍽️ ${i.name}</h3>
+                📍 ${i.location}<br>
+                🍜 ${i.type}<br><br>
+                <button onclick="removeFav('${i.name}')">❌ 取消收藏</button>
+            </div>`;
         });
+
         result.innerHTML=html;
     });
 }
 // 轉盤
 function spinWheel(){
     let id = localStorage.getItem("user_id");
+
     fetch(`${API_BASE}/getFav?user_id=${id}`)
     .then(r=>r.json())
     .then(data=>{
         let list = data.favorites;
-        // 🔥 重點：沒有收藏
+
+        // ❌ 沒收藏
         if(!list || list.length === 0){
             result.innerHTML = `
             <div class="card">
-            <h2>😢 還沒有收藏餐廳</h2>
-            <p>先去收藏幾間再來抽吧！</p>
+                <h2>😢 還沒有收藏餐廳</h2>
+                <p>先去收藏幾間再來抽吧！</p>
             </div>`;
             return;
         }
+
+        // 🔥 取得篩選條件
+        let location = document.getElementById("location").value.trim();
+        let food = document.getElementById("food").value.trim();
+
+        // 🔥 篩選
+        let filtered = list.filter(item=>{
+            let matchLocation = !location || item.location.includes(location);
+            let matchType = !food || item.type.includes(food);
+            return matchLocation && matchType;
+        });
+
+        // ❌ 沒符合條件
+        if(filtered.length === 0){
+            result.innerHTML = `
+            <div class="card">
+                <h2>❌ 沒有符合條件的收藏</h2>
+            </div>`;
+            return;
+        }
+
+        // 🎡 動畫開始
+        let i = 0;
+        let pick;
+        let interval = setInterval(()=>{
+            pick = filtered[Math.floor(Math.random()*filtered.length)];
+
+            result.innerHTML = `
+            <div class="card">
+                <h2>🎡 選擇中...</h2>
+                <h3>${pick.name}</h3>
+            </div>`;
+
+            i++;
+            if(i > 12){
+                clearInterval(interval);
+
+                result.innerHTML = `
+                <div class="card">
+                    <h2>🎯 今天吃這個！</h2>
+                    <h1>🍜 ${pick.name}</h1>
+                    📍 ${pick.location}<br>
+                    🍽️ ${pick.type}
+                </div>`;
+            }
+        },150);
+    })
+    .catch(err=>{
+        console.error(err);
+        result.innerHTML="❌ 發生錯誤";
+    });
+}
+function removeFav(name){
+    let id = localStorage.getItem("user_id");
+
+    fetch(`${API_BASE}/deleteFav`,{
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body:JSON.stringify({ user_id:id, name })
+    })
+    .then(()=>{
+        alert("已取消收藏");
+        showFav(); // 🔥 刷新列表
+    })
+    .catch(err=>{
+        console.error(err);
+        alert("刪除失敗");
+    });
+}
         // 有收藏才開始抽
         let pick = list[Math.floor(Math.random()*list.length)];
         result.innerHTML=`
