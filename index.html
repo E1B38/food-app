@@ -258,31 +258,32 @@
             return;
         }
 
-        // 🔥 取得使用者輸入條件
-        let location = document.getElementById("location").value;
-        let food = document.getElementById("food").value;
+        let location = document.getElementById("location").value.trim();
+        let food = document.getElementById("food").value.trim();
 
-        // 🔥 過濾收藏
+        // 🔥 核心：彈性篩選（重點在這）
         let filtered = list.filter(item => {
-            return (
-                (location === "" || item.location.includes(location)) &&
-                (food === "" || item.type.includes(food))
-            );
+
+            let matchLocation = !location || item.location.includes(location);
+            let matchType = !food || item.type.includes(food);
+
+            return matchLocation && matchType;
         });
 
-        // 🔥 如果篩選後沒東西 → fallback
+        // ❗沒有符合就直接提示（不要亂抽）
         if(filtered.length === 0){
-            filtered = list;
+            alert("❌ 沒有符合條件的收藏！");
+            return;
         }
 
-        let resultDiv = document.getElementById("result");
-        let i = 0;
+        let resultDiv=document.getElementById("result");
+        let i=0;
         let pick;
 
-        let interval = setInterval(()=>{
-            pick = filtered[Math.floor(Math.random()*filtered.length)];
+        let interval=setInterval(()=>{
+            pick=filtered[Math.floor(Math.random()*filtered.length)];
 
-            resultDiv.innerHTML = `
+            resultDiv.innerHTML=`
             <div class="card">
                 <h2>🎡 選擇中...</h2>
                 <h3>${pick.name}</h3>
@@ -293,7 +294,7 @@
             if(i>12){
                 clearInterval(interval);
 
-                resultDiv.innerHTML = `
+                resultDiv.innerHTML=`
                 <div class="card">
                     <h2>🎯 今天吃這個！</h2>
                     <h1>${pick.name}</h1>
