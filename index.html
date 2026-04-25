@@ -228,9 +228,9 @@ function search(){
 
     result.innerHTML="🔄 查詢中...";
 
-    let loc = location.value.trim();
-    let foodType = food.value.trim();
-    let bud = budget.value.trim();
+    let loc = document.getElementById("location").value.trim();
+    let foodType = document.getElementById("food").value.trim();
+    let bud = document.getElementById("budget").value.trim();
 
     let url = `${API_BASE}/recommend?`;
 
@@ -245,16 +245,20 @@ function search(){
         console.log(data);
 
         if(!data.recommendations || data.recommendations.length===0){
-            result.innerHTML="❌ 沒有找到餐廳（可以試著放寬條件）";
+            result.innerHTML="❌ 沒有找到餐廳";
             return;
         }
 
         let html="";
         data.recommendations.forEach(r=>{
-            html+=createCard(r.name,r.rating,r.reason,r.price,food.value,location.value);
+            html+=createCard(r.name,r.rating,r.reason,r.price,foodType,loc);
         });
 
         result.innerHTML=html;
+    })
+    .catch(err=>{
+        console.error(err);
+        result.innerHTML="❌ 發生錯誤";
     });
 }
 
