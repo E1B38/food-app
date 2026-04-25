@@ -1,314 +1,321 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>餐廳推薦</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>餐廳推薦</title>
 
-    <style>
-        body {
-            font-family: Arial;
-            background: #f5f5f5;
-            margin: 0;
-        }
+<script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6.3.6/dist/amazon-cognito-identity.min.js"></script>
 
-        .header {
-            background: #007bff;
-            color: white;
-            padding: 15px;
-            text-align: center;
-        }
-
-        .container {
-            padding: 15px;
-        }
-
-        input {
-            width: 100%;
-            padding: 10px;
-            margin: 8px 0;
-            border-radius: 8px;
-            border: 1px solid #ccc;
-        }
-
-        button {
-            width: 100%;
-            padding: 12px;
-            margin-top: 10px;
-            border-radius: 8px;
-            border: none;
-        }
-
-        .quick-btn {
-            width: auto;
-            margin: 5px;
-            background: #eee;
-        }
-
-        .search-btn {
-            background: #007bff;
-            color: white;
-        }
-
-        .card {
-            background: white;
-            margin: 10px;
-            padding: 15px;
-            border-radius: 12px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-        }
-    </style>
-
+<style>
+body { font-family: Arial; background:#f5f5f5; margin:0; }
+.header { background:#007bff; color:white; padding:15px; text-align:center; }
+.container { padding:15px; }
+input { width:100%; padding:10px; margin:8px 0; border-radius:8px; border:1px solid #ccc; }
+button { width:100%; padding:12px; margin-top:10px; border-radius:8px; border:none; }
+.quick-btn { width:auto; margin:5px; background:#eee; }
+.search-btn { background:#007bff; color:white; }
+.card { background:white; margin:10px; padding:15px; border-radius:12px; box-shadow:0 2px 6px rgba(0,0,0,0.1); }
+</style>
 </head>
+
 <body>
 
-    <div class="header">🍽️ 餐廳推薦</div>
+<div class="header">🍽️ 餐廳推薦</div>
 
-    <div class="container">
+<!-- 👤 使用者狀態 -->
+<div id="userBar" style="background:#eee;padding:10px;text-align:center;">
+👤 未登入
+</div>
 
-        🔍 搜尋餐廳
-        <input id="keyword" placeholder="輸入餐廳名稱">
-        <button onclick="searchByName()">搜尋</button>
+<div class="container">
 
-        <hr>
+<!-- 🔐 登入區 -->
+<input id="username" placeholder="帳號">
+<input id="password" type="password" placeholder="密碼">
+<button onclick="register()">註冊</button>
+<button onclick="login()">登入</button>
 
-        📍 地點
-        <input id="location" value="台北">
+<hr>
 
-        🍜 類型
-        <input id="food" value="日式">
+🔍 搜尋餐廳
+<input id="keyword" placeholder="輸入餐廳名稱">
+<button onclick="searchByName()">搜尋</button>
 
-        <div>
-            <button class="quick-btn" onclick="setFood('日式')">日式</button>
-            <button class="quick-btn" onclick="setFood('韓式')">韓式</button>
-            <button class="quick-btn" onclick="setFood('台式')">台式</button>
-        </div>
+<hr>
 
-        💰 預算
-        <input id="budget" value="300">
+📍 地點
+<input id="location" value="台北">
 
-        <button class="search-btn" onclick="search()">推薦餐廳</button>
-        <button onclick="spinWheel()">🎲 不知道吃什麼</button>
-        <button onclick="showFav()">📂 我的收藏</button>
+🍜 類型
+<input id="food" value="日式">
+<div>
+<button class="quick-btn" onclick="setFood('日式')">日式</button>
+<button class="quick-btn" onclick="setFood('韓式')">韓式</button>
+<button class="quick-btn" onclick="setFood('台式')">台式</button>
+</div>
 
-    </div>
+💰 預算
+<input id="budget" value="300">
 
-    <div id="result"></div>
+<button class="search-btn" onclick="search()">推薦餐廳</button>
+<button onclick="spinWheel()">🎲 不知道吃什麼</button>
+<button onclick="showFav()">📂 我的收藏</button>
 
-    <script>
+</div>
 
-        const API_BASE = "https://39i46pikt1.execute-api.us-east-1.amazonaws.com";
-        const USER_ID = "demo";
+<div id="result"></div>
 
-        function setFood(type){
-        document.getElementById("food").value = type;
+<script>
+const API_BASE = "https://39i46pikt1.execute-api.us-east-1.amazonaws.com";
+
+// 🔐 Cognito設定（填你的）
+const poolData = {
+    UserPoolId: "你的UserPoolId",
+    ClientId: "你的ClientId"
+};
+
+const userPool = new AmazonCognitoIdentity.CognitoUserPool(poolData);
+
+// 👤 UI更新
+function updateUserUI(){
+    let username = localStorage.getItem("username");
+
+    if(username){
+        document.getElementById("userBar").innerHTML = `
+        👤 ${username}
+        <button onclick="logout()">登出</button>
+        `;
+    }else{
+        document.getElementById("userBar").innerHTML = `👤 未登入`;
+    }
+}
+
+// 🔐 註冊
+function register(){
+    let u = document.getElementById("username").value;
+    let p = document.getElementById("password").value;
+
+    userPool.signUp(u, p, [], null, function(err){
+        if(err){ alert(err.message); return; }
+        alert("註冊成功！");
+    });
+}
+
+// 🔐 登入
+function login(){
+
+    let username = document.getElementById("username").value;
+    let password = document.getElementById("password").value;
+
+    let auth = new AmazonCognitoIdentity.AuthenticationDetails({
+        Username: username,
+        Password: password
+    });
+
+    let user = new AmazonCognitoIdentity.CognitoUser({
+        Username: username,
+        Pool: userPool
+    });
+
+    user.authenticateUser(auth, {
+        onSuccess: function (result) {
+
+            let user_id = result.getIdToken().payload.sub;
+
+            localStorage.setItem("user_id", user_id);
+            localStorage.setItem("username", username);
+
+            updateUserUI();
+            alert("登入成功🔥");
+        },
+        onFailure: function(err){
+            alert(err.message);
         }
+    });
+}
 
-        // 🔍 推薦
-        function search(){
-        let resultDiv = document.getElementById("result");
-        resultDiv.innerHTML = "🔄 查詢中...";
+// 🚪 登出
+function logout(){
+    localStorage.clear();
+    updateUserUI();
+    alert("已登出");
+}
 
-        let location = document.getElementById("location").value;
-        let food = document.getElementById("food").value;
-        let budget = document.getElementById("budget").value;
+// 🔥 取得 user_id
+function getUser(){
+    let id = localStorage.getItem("user_id");
+    if(!id){
+        alert("請先登入！");
+        return null;
+    }
+    return id;
+}
 
-        fetch(`${API_BASE}/recommend?location=${location}&food_type=${food}&budget=${budget}`)
-        .then(res=>res.json())
-        .then(data=>{
-        console.log(data);
+// 類型
+function setFood(type){
+    document.getElementById("food").value = type;
+}
+
+// 推薦
+function search(){
+    let resultDiv = document.getElementById("result");
+    resultDiv.innerHTML = "🔄 查詢中...";
+
+    let location = document.getElementById("location").value;
+    let food = document.getElementById("food").value;
+    let budget = document.getElementById("budget").value;
+
+    fetch(`${API_BASE}/recommend?location=${location}&food_type=${food}&budget=${budget}`)
+    .then(res=>res.json())
+    .then(data=>{
         let html="";
         data.recommendations.forEach(r=>{
-        html+=createCard(r.name,r.rating,r.reason,r.price,food,location);
+            html+=createCard(r.name,r.rating,r.reason,r.price,food,location);
         });
         resultDiv.innerHTML=html;
-        })
-        .catch(err=>{
-        console.error(err);
-        alert("❌ 查詢失敗");
-        });
-        }
+    });
+}
 
-        // 🔍 搜尋
-        function searchByName(){
-        let keyword=document.getElementById("keyword").value;
-        if(!keyword){ alert("請輸入餐廳名稱"); return;}
+// 搜尋
+function searchByName(){
+    let keyword=document.getElementById("keyword").value;
+    if(!keyword){ alert("請輸入餐廳名稱"); return;}
 
-        fetch(`${API_BASE}/recommend?location=${keyword}`)
-        .then(res=>res.json())
-        .then(data=>{
-        console.log(data);
+    fetch(`${API_BASE}/recommend?location=${keyword}`)
+    .then(res=>res.json())
+    .then(data=>{
         let html="";
         data.recommendations.forEach(r=>{
-        html+=createCard(r.name,r.rating,r.reason,r.price,"搜尋",keyword);
+            html+=createCard(r.name,r.rating,r.reason,r.price,"搜尋",keyword);
         });
         document.getElementById("result").innerHTML=html;
-        });
-        }
+    });
+}
 
-        // ⭐ 卡片
-        function createCard(name,rating,reason,price,type,location){
-        return `
-        <div class="card">
-        <h3>${name}</h3>
-        ⭐ ${rating}　💰 ${price||"?"}<br>
-        💡 ${reason}<br><br>
+// 卡片
+function createCard(name,rating,reason,price,type,location){
+    return `
+    <div class="card">
+    <h3>${name}</h3>
+    ⭐ ${rating}　💰 ${price||"?"}<br>
+    💡 ${reason}<br><br>
+    <button onclick="toggleFav('${name}','${type}','${location}')">
+    ⭐ 收藏
+    </button>
+    </div>`;
+}
 
-        <button onclick="toggleFav('${name}','${type}','${location}')">
-        ⭐ 收藏（雲端）
-        </button>
-        </div>`;
-        }
+// 收藏
+function toggleFav(name,type,location){
 
-        // ⭐ 收藏
-        function toggleFav(name,type,location){
+    let user_id = getUser();
+    if(!user_id) return;
 
-        alert("🔄 正在加入收藏...");
-
-        fetch(`${API_BASE}/saveFav`, {
+    fetch(`${API_BASE}/saveFav`, {
         method: "POST",
-        headers: {
-        "Content-Type": "application/json"
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-        user_id: USER_ID,
-        name: name,
-        type: type,
-        location: location
+            user_id, name, type, location
         })
-        })
-        .then(res => res.json())
-        .then(data => {
-        console.log(data);
-        alert("✅ 已加入收藏！");
-        })
-        .catch(err => {
-        console.error(err);
-        alert("❌ 收藏失敗");
-        });
-        }
+    })
+    .then(()=>alert("已收藏🔥"));
+}
 
-        // 📂 顯示收藏
-        function showFav(){
+// 收藏列表
+function showFav(){
 
-        fetch(`${API_BASE}/getFav?user_id=${USER_ID}`)
-        .then(res=>res.json())
-        .then(data=>{
-        console.log(data);
+    let user_id = getUser();
+    if(!user_id) return;
 
-        if(!data.favorites || data.favorites.length===0){
-        document.getElementById("result").innerHTML="📭 沒有收藏";
-        return;
-        }
-
+    fetch(`${API_BASE}/getFav?user_id=${user_id}`)
+    .then(res=>res.json())
+    .then(data=>{
         let html="<h2>⭐ 我的收藏</h2>";
-
         data.favorites.forEach(item=>{
-        html+=`
-        <div class="card">
-        <h3>${item.name}</h3>
-        📍 ${item.location}<br>
-        🍜 ${item.type}<br><br>
-
-        <button onclick="removeFav('${item.name}')">
-        ❌ 取消收藏
-        </button>
-        </div>`;
+            html+=`
+            <div class="card">
+            <h3>${item.name}</h3>
+            📍 ${item.location}<br>
+            🍜 ${item.type}<br><br>
+            <button onclick="removeFav('${item.name}')">
+            ❌ 取消收藏
+            </button>
+            </div>`;
         });
-
         document.getElementById("result").innerHTML=html;
-        });
-        }
+    });
+}
 
-        // ❌ 刪除收藏
-        function removeFav(name){
+// 刪除
+function removeFav(name){
 
-        fetch(`${API_BASE}/deleteFav`, {
-        method: "POST",
-        headers: {
-        "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-        user_id: USER_ID,
-        name: name
-        })
-        })
-        .then(res=>res.json())
-        .then(()=>{
-        alert("已刪除");
-        showFav();
-        })
-        .catch(err=>{
-        console.error(err);
-        alert("刪除失敗");
-        });
-        }
+    let user_id = getUser();
+    if(!user_id) return;
 
-        // 🎡 轉盤
-        function spinWheel(){
+    fetch(`${API_BASE}/deleteFav`, {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body:JSON.stringify({ user_id, name })
+    })
+    .then(()=>showFav());
+}
 
-    fetch(`${API_BASE}/getFav?user_id=${USER_ID}`)
+// 🎡 轉盤
+function spinWheel(){
+
+    let user_id = getUser();
+    if(!user_id) return;
+
+    fetch(`${API_BASE}/getFav?user_id=${user_id}`)
     .then(res=>res.json())
     .then(data=>{
 
-        let list = data.favorites;
+        let list=data.favorites;
 
-        if(!list || list.length===0){
-            alert("還沒收藏餐廳！");
-            return;
-        }
+        let location=document.getElementById("location").value.trim();
+        let food=document.getElementById("food").value.trim();
 
-        let location = document.getElementById("location").value.trim();
-        let food = document.getElementById("food").value.trim();
-
-        // 🔥 核心：彈性篩選（重點在這）
-        let filtered = list.filter(item => {
-
-            let matchLocation = !location || item.location.includes(location);
-            let matchType = !food || item.type.includes(food);
-
-            return matchLocation && matchType;
+        let filtered=list.filter(item=>{
+            let m1=!location||item.location.includes(location);
+            let m2=!food||item.type.includes(food);
+            return m1&&m2;
         });
 
-        // ❗沒有符合就直接提示（不要亂抽）
-        if(filtered.length === 0){
-            alert("❌ 沒有符合條件的收藏！");
+        if(filtered.length===0){
+            alert("沒有符合條件");
             return;
         }
 
         let resultDiv=document.getElementById("result");
-        let i=0;
-        let pick;
+        let i=0,pick;
 
         let interval=setInterval(()=>{
             pick=filtered[Math.floor(Math.random()*filtered.length)];
 
             resultDiv.innerHTML=`
             <div class="card">
-                <h2>🎡 選擇中...</h2>
-                <h3>${pick.name}</h3>
+            <h2>🎡 選擇中...</h2>
+            <h3>${pick.name}</h3>
             </div>`;
 
-            i++;
-
-            if(i>12){
+            if(++i>12){
                 clearInterval(interval);
-
                 resultDiv.innerHTML=`
                 <div class="card">
-                    <h2>🎯 今天吃這個！</h2>
-                    <h1>${pick.name}</h1>
-                    📍 ${pick.location}<br>
-                    🍜 ${pick.type}
+                <h2>🎯 今天吃這個！</h2>
+                <h1>${pick.name}</h1>
+                📍 ${pick.location}<br>
+                🍜 ${pick.type}
                 </div>`;
             }
 
         },150);
-
     });
 }
 
-    </script>
+updateUserUI();
+</script>
 
 </body>
 </html>
