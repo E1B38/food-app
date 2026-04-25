@@ -228,15 +228,24 @@ function search(){
 
     result.innerHTML="🔄 查詢中...";
 
-    fetch(`${API_BASE}/recommend?location=${location.value}&food_type=${food.value}&budget=${budget.value}`)
+    let loc = location.value.trim();
+    let foodType = food.value.trim();
+    let bud = budget.value.trim();
+
+    let url = `${API_BASE}/recommend?`;
+
+    if(loc) url += `location=${loc}&`;
+    if(foodType) url += `food_type=${foodType}&`;
+    if(bud) url += `budget=${bud}`;
+
+    fetch(url)
     .then(r=>r.json())
     .then(data=>{
 
-        console.log(data); // 🔥 加這行（看回傳）
+        console.log(data);
 
-        // ❗防呆（重點）
-        if(!data.recommendations || data.recommendations.length === 0){
-            result.innerHTML = "❌ 沒有找到餐廳";
+        if(!data.recommendations || data.recommendations.length===0){
+            result.innerHTML="❌ 沒有找到餐廳（可以試著放寬條件）";
             return;
         }
 
@@ -246,10 +255,6 @@ function search(){
         });
 
         result.innerHTML=html;
-    })
-    .catch(err=>{
-        console.error(err);
-        result.innerHTML="❌ 發生錯誤";
     });
 }
 
