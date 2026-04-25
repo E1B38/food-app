@@ -101,12 +101,27 @@ function checkUI(){
 
 // 🔐 註冊
 function register(){
+
     let u = username.value;
     let p = password.value;
 
-    userPool.signUp(u, p, [], null, function(err){
-        if(err){ alert(err.message); return; }
-        alert("註冊成功！");
+    let attributeList = [];
+
+    let dataEmail = {
+        Name: "email",
+        Value: u // 👉 你現在用帳號當email
+    };
+
+    let attributeEmail = new AmazonCognitoIdentity.CognitoUserAttribute(dataEmail);
+
+    attributeList.push(attributeEmail);
+
+    userPool.signUp(u, p, attributeList, null, function(err){
+        if(err){
+            alert(err.message);
+            return;
+        }
+        alert("註冊成功🔥");
     });
 }
 
