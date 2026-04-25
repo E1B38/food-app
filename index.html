@@ -12,7 +12,6 @@ body {
     margin: 0;
 }
 
-/* 🔥 手機上方標題 */
 .header {
     background: #007bff;
     color: white;
@@ -21,7 +20,6 @@ body {
     font-size: 20px;
 }
 
-/* 🔥 輸入區 */
 .container {
     padding: 15px;
 }
@@ -32,21 +30,19 @@ input {
     margin: 8px 0;
     border-radius: 8px;
     border: 1px solid #ccc;
-    font-size: 16px;
 }
 
 button {
     width: 100%;
     padding: 12px;
     margin-top: 10px;
-    border: none;
     border-radius: 8px;
-    font-size: 16px;
+    border: none;
 }
 
 .quick-btn {
     width: auto;
-    margin: 5px 5px 5px 0;
+    margin: 5px;
     background: #eee;
 }
 
@@ -55,7 +51,6 @@ button {
     color: white;
 }
 
-/* 🔥 卡片（像App） */
 .card {
     background: white;
     margin: 10px;
@@ -63,11 +58,6 @@ button {
     border-radius: 12px;
     box-shadow: 0 2px 6px rgba(0,0,0,0.1);
 }
-
-.card h3 {
-    margin: 0 0 5px;
-}
-
 </style>
 </head>
 
@@ -76,6 +66,12 @@ button {
 <div class="header">🍽️ 餐廳推薦</div>
 
 <div class="container">
+
+🔍 搜尋餐廳
+<input id="keyword" placeholder="輸入餐廳名稱">
+<button onclick="searchByName()">搜尋</button>
+
+<hr>
 
 📍 地點
 <input id="location" value="台北">
@@ -92,7 +88,9 @@ button {
 💰 預算
 <input id="budget" value="300">
 
-<button class="search-btn" onclick="search()">查詢</button>
+<button class="search-btn" onclick="search()">推薦餐廳</button>
+
+<button onclick="randomPick()">🎲 不知道吃什麼</button>
 
 </div>
 
@@ -100,10 +98,12 @@ button {
 
 <script>
 
+// 類型快捷
 function setFood(type) {
     document.getElementById("food").value = type;
 }
 
+// 🔥 原本推薦功能
 function search() {
 
     let resultDiv = document.getElementById("result");
@@ -119,29 +119,109 @@ function search() {
     .then(res => res.json())
     .then(data => {
 
-        if (!data.recommendations) {
-            resultDiv.innerHTML = "❌ 沒有資料";
-            return;
-        }
+        let html = "";
+
+        data.recommendations.forEach(r => {
+            html += createCard(r.name, r.rating, r.reason, r.price, food, location);
+        });
+
+        resultDiv.innerHTML = html;
+    });
+}
+
+// 🔍 搜尋餐廳名稱
+function searchByName() {
+
+    let keyword = document.getElementById("keyword").value;
+
+    if (!keyword) {
+        alert("請輸入餐廳名稱");
+        return;
+    }
+
+    let url = `https://39i46pikt1.execute-api.us-east-1.amazonaws.com/recommend?location=${keyword}`;
+
+    fetch(url)
+    .then(res => res.json())
+    .then(data => {
 
         let html = "";
 
         data.recommendations.forEach(r => {
-            html += `
-                <div class="card">
-                    <h3>${r.name}</h3>
-                    ⭐ ${r.rating}　💰 ${r.price || "?"}<br>
-                    💡 ${r.reason}
-                </div>
-            `;
+            html += createCard(r.name, r.rating, r.reason, r.price, "搜尋", keyword);
         });
 
-        resultDiv.innerHTML = html;
-    })
-    .catch(err => {
-        console.error(err);
-        resultDiv.innerHTML = "❌ 發生錯誤";
+        document.getElementById("result").innerHTML = html;
     });
+}
+
+// ⭐ 卡片生成（共用）
+function createCard(name, rating, reason, price, type, location) {
+    return `
+        <div class="card">
+            <h3>${name}</h3>
+            ⭐ ${rating}　💰 ${price || "?"}<br>
+            💡 ${reason}<br><br>
+
+            <button onclick="toggleFav('${name}','${type}','${location}')">
+                ⭐ 收藏 / 取消
+            </button>
+        </div>
+    `;
+}
+
+// ⭐ 收藏切換
+function toggleFav(name, type, location) {
+
+    let list = JSON.parse(localStorage.getItem("fav") || "[]");
+
+    let index = list.findIndex(item => item.name === name);
+
+    if (index !== -1) {
+        list.splice(index, 1);
+        alert("已取消收藏");
+    } else {
+        list.push({ name, type, location });
+        alert("已收藏！");
+    }
+
+    localStorage.setItem("fav", JSON.stringify(list));
+}
+
+// 🎲 隨機選
+function randomPick() {
+
+    let list = JSON.parse(localStorage.getItem("fav") || "[]");
+
+    if (list.length === 0) {
+        alert("還沒收藏餐廳！");
+        return;
+    }
+
+    let location = document.getElementById("location").value;
+    let food = document.getElementById("food").value;
+
+    let filtered = list.filter(item => {
+        return (
+            (location === "" || item.location.includes(location)) &&
+            (food === "" || item.type.includes(food))
+        );
+    });
+
+    if (filtered.length === 0) {
+        filtered = list;
+    }
+
+    let pick = filtered[Math.floor(Math.random() * filtered.length)];
+
+    document.getElementById("result").innerHTML = `
+        <div class="card">
+            <h2>🎯 今天吃這個！</h2>
+            <h3>${pick.name}</h3>
+            📍 ${pick.location}<br>
+            🍜 ${pick.type}
+        </div>
+    `;
 }
 
 </script>
