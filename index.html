@@ -9,7 +9,6 @@
 
 <style>
 body { font-family: Arial; background:#f5f5f5; margin:0; }
-
 .header {
     background:#007bff;
     color:white;
@@ -17,9 +16,7 @@ body { font-family: Arial; background:#f5f5f5; margin:0; }
     text-align:center;
     font-size:20px;
 }
-
 .container { padding:15px; }
-
 input {
     width:100%;
     padding:10px;
@@ -27,7 +24,6 @@ input {
     border-radius:8px;
     border:1px solid #ccc;
 }
-
 button {
     width:100%;
     padding:12px;
@@ -36,16 +32,13 @@ button {
     border:none;
     cursor:pointer;
 }
-
 .primary { background:#007bff; color:white; }
 .secondary { background:#6c757d; color:white; }
-
 .quick-btn {
     width:auto;
     margin:5px;
     background:#eee;
 }
-
 .card {
     background:white;
     margin:10px;
@@ -60,9 +53,8 @@ button {
 
 <div class="header">🍽️ 餐廳推薦系統</div>
 
-<!-- 🔐 登入 -->
+<!-- 登入 -->
 <div id="authSection" class="container">
-
 <h2>🔐 登入 / 註冊</h2>
 
 <input id="username" placeholder="帳號（必須是 Gmail）">
@@ -73,12 +65,10 @@ button {
 
 <input id="code" placeholder="📩 驗證碼">
 <button onclick="confirmUser()">✅ 驗證帳號</button>
-
 </div>
 
 <!-- 主畫面 -->
 <div id="appSection" style="display:none;">
-
 <div style="background:#eee;padding:10px;text-align:right;">
 👤 <span id="userName"></span>
 <button onclick="logout()">🚪 登出</button>
@@ -86,7 +76,7 @@ button {
 
 <div class="container">
 
-🔍 搜尋餐廳（輸入名稱）
+🔍 搜尋餐廳
 <input id="keyword" placeholder="例如：拉麵">
 <button onclick="searchByName()">🔍 搜尋</button>
 
@@ -118,7 +108,8 @@ button {
 
 <script>
 
-const API_BASE = "https://39i46pikt1.execute-api.us-east-1.amazonaws.com";
+// 🔥 一定要用 /prod
+const API_BASE = "https://39i46pikt1.execute-api.us-east-1.amazonaws.com/prod";
 
 const poolData = {
     UserPoolId: "us-east-1_FEseKdrJX",
@@ -142,7 +133,7 @@ function checkUI(){
     }
 }
 
-// 🔥 Gmail限制
+// Gmail限制
 function isGmail(email){
     return email.endsWith("@gmail.com");
 }
@@ -153,7 +144,7 @@ function register(){
     let p = password.value;
 
     if(!isGmail(u)){
-        alert("❌ 只能使用 Gmail 註冊！");
+        alert("❌ 只能用 Gmail！");
         return;
     }
 
@@ -166,7 +157,7 @@ function register(){
 
     userPool.signUp(u, p, attr, null, function(err){
         if(err) return alert(err.message);
-        alert("✅ 註冊成功！請去 Gmail 收驗證碼");
+        alert("✅ 註冊成功！");
     });
 }
 
@@ -179,7 +170,7 @@ function confirmUser(){
 
     user.confirmRegistration(code.value, true, function(err){
         if(err) return alert(err.message);
-        alert("✅ 驗證成功！可以登入了");
+        alert("✅ 驗證成功！");
     });
 }
 
@@ -218,14 +209,8 @@ function logout(){
     checkUI();
 }
 
-// 類型
-function setFood(type){
-    food.value = type;
-}
-
 // 推薦
 function search(){
-
     result.innerHTML="🔄 查詢中...";
 
     let loc = document.getElementById("location").value.trim();
@@ -233,7 +218,6 @@ function search(){
     let bud = document.getElementById("budget").value.trim();
 
     let url = `${API_BASE}/recommend?`;
-
     if(loc) url += `location=${loc}&`;
     if(foodType) url += `food_type=${foodType}&`;
     if(bud) url += `budget=${bud}`;
@@ -241,9 +225,6 @@ function search(){
     fetch(url)
     .then(r=>r.json())
     .then(data=>{
-
-        console.log(data);
-
         if(!data.recommendations || data.recommendations.length===0){
             result.innerHTML="❌ 沒有找到餐廳";
             return;
@@ -254,25 +235,6 @@ function search(){
             html+=createCard(r.name,r.rating,r.reason,r.price,foodType,loc);
         });
 
-        result.innerHTML=html;
-    })
-    .catch(err=>{
-        console.error(err);
-        result.innerHTML="❌ 發生錯誤";
-    });
-}
-
-// 搜尋
-function searchByName(){
-    if(!keyword.value) return alert("請輸入餐廳名稱");
-
-    fetch(`${API_BASE}/recommend?location=${keyword.value}`)
-    .then(r=>r.json())
-    .then(data=>{
-        let html="";
-        data.recommendations.forEach(r=>{
-            html+=createCard(r.name,r.rating,r.reason,r.price,"搜尋",keyword.value);
-        });
         result.innerHTML=html;
     });
 }
@@ -291,7 +253,6 @@ return `
 // 收藏
 function toggleFav(name,type,location){
     let id = localStorage.getItem("user_id");
-    if(!id) return alert("請先登入");
 
     fetch(`${API_BASE}/saveFav`,{
         method:"POST",
@@ -300,61 +261,82 @@ function toggleFav(name,type,location){
     }).then(()=>alert("已收藏🔥"));
 }
 
-// 收藏列表
+// ⭐ 收藏列表（🔥已修）
 function showFav(){
     let id = localStorage.getItem("user_id");
 
     fetch(`${API_BASE}/getFav?user_id=${id}`)
     .then(r=>r.json())
     .then(data=>{
+
+        if(!data.favorites || data.favorites.length===0){
+            result.innerHTML="😢 還沒有收藏";
+            return;
+        }
+
         let html="<h2>⭐ 我的收藏</h2>";
-        data.favorites.forEach(i=>{
-            html+=`<div class="card">🍽️ ${i.name}</div>`;
+
+        data.favorites.forEach(item=>{
+            html+=`
+            <div class="card">
+                <h3>🍽️ ${item.name}</h3>
+                📍 ${item.location}<br>
+                🍜 ${item.type}<br><br>
+
+                <button onclick="removeFav('${item.name}')">
+                    ❌ 取消收藏
+                </button>
+            </div>`;
         });
+
         result.innerHTML=html;
     });
 }
 
-// 轉盤
-function spinWheel(){
+// ❌ 刪除收藏（🔥新增）
+function removeFav(name){
+    let id = localStorage.getItem("user_id");
 
+    fetch(`${API_BASE}/deleteFav`,{
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body:JSON.stringify({user_id:id,name})
+    })
+    .then(()=>{
+        alert("已刪除 ✅");
+        showFav();
+    });
+}
+
+// 🎲 轉盤
+function spinWheel(){
     let id = localStorage.getItem("user_id");
 
     fetch(`${API_BASE}/getFav?user_id=${id}`)
     .then(r=>r.json())
     .then(data=>{
-
         let list = data.favorites;
 
-        // 🔥 重點：沒有收藏
         if(!list || list.length === 0){
             result.innerHTML = `
             <div class="card">
             <h2>😢 還沒有收藏餐廳</h2>
-            <p>先去收藏幾間再來抽吧！</p>
             </div>`;
             return;
         }
 
-        // 有收藏才開始抽
         let pick = list[Math.floor(Math.random()*list.length)];
 
         result.innerHTML=`
         <div class="card">
         <h2>🎯 今天吃這個！</h2>
         <h1>🍜 ${pick.name}</h1>
-        📍 ${pick.location}<br>
-        🍽️ ${pick.type}
         </div>`;
-    })
-    .catch(err=>{
-        console.error(err);
-        result.innerHTML="❌ 發生錯誤";
     });
 }
+
 checkUI();
 
 </script>
-
 </body>
 </html>
