@@ -227,7 +227,12 @@ return `
 // 收藏
 function toggleFav(name,type,location){
     let id = localStorage.getItem("user_id");
-    if(!id) return alert("請先登入");
+
+    // 🔥 強制分類（關鍵）
+    if(type === "搜尋"){
+        type = document.getElementById("food").value || "其他";
+    }
+
     fetch(`${API_BASE}/saveFav`,{
         method:"POST",
         headers:{ "Content-Type":"application/json" },
