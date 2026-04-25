@@ -317,22 +317,41 @@ function showFav(){
 
 // 轉盤
 function spinWheel(){
+
     let id = localStorage.getItem("user_id");
 
     fetch(`${API_BASE}/getFav?user_id=${id}`)
     .then(r=>r.json())
     .then(data=>{
-        let list=data.favorites;
-        let pick=list[Math.floor(Math.random()*list.length)];
+
+        let list = data.favorites;
+
+        // 🔥 重點：沒有收藏
+        if(!list || list.length === 0){
+            result.innerHTML = `
+            <div class="card">
+            <h2>😢 還沒有收藏餐廳</h2>
+            <p>先去收藏幾間再來抽吧！</p>
+            </div>`;
+            return;
+        }
+
+        // 有收藏才開始抽
+        let pick = list[Math.floor(Math.random()*list.length)];
 
         result.innerHTML=`
         <div class="card">
         <h2>🎯 今天吃這個！</h2>
         <h1>🍜 ${pick.name}</h1>
+        📍 ${pick.location}<br>
+        🍽️ ${pick.type}
         </div>`;
+    })
+    .catch(err=>{
+        console.error(err);
+        result.innerHTML="❌ 發生錯誤";
     });
 }
-
 checkUI();
 
 </script>
