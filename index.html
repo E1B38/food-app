@@ -288,7 +288,11 @@ function spinWheel(){
     let inputLoc = location.replace("臺","台");
 
     let matchLocation = !location || itemLoc.includes(inputLoc);
-    let matchType = !food || (item.type && item.type.includes(food));
+    let matchType = !food || (
+    item.type &&
+    item.type.replace(/\s/g,'').toLowerCase()
+    .includes(food.replace(/\s/g,'').toLowerCase())
+);
     return matchLocation && matchType;
 });
 
