@@ -116,6 +116,8 @@ function login(){
     let u = username.value;
     let p = password.value;
 
+    alert("登入中..."); // 🔥 一定會跳
+
     let auth = new AmazonCognitoIdentity.AuthenticationDetails({
         Username: u,
         Password: p
@@ -128,18 +130,10 @@ function login(){
 
     user.authenticateUser(auth, {
         onSuccess: function (result) {
-
-            let user_id = result.getIdToken().payload.sub;
-
-            localStorage.setItem("user_id", user_id);
-            localStorage.setItem("username", u);
-
             alert("登入成功🔥");
-
-            checkUI();
         },
         onFailure: function(err){
-            alert(err.message);
+            alert("錯誤："+err.message);
         }
     });
 }
