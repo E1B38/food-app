@@ -347,21 +347,7 @@ function removeFav(name){
         alert("刪除失敗");
     });
 }
-        // 有收藏才開始抽
-        let pick = list[Math.floor(Math.random()*list.length)];
-        result.innerHTML=`
-        <div class="card">
-        <h2>🎯 今天吃這個！</h2>
-        <h1>🍜 ${pick.name}</h1>
-        📍 ${pick.location}<br>
-        🍽️ ${pick.type}
-        </div>`;
-    })
-    .catch(err=>{
-        console.error(err);
-        result.innerHTML="❌ 發生錯誤";
-    });
-}
+
 checkUI();
 </script>
 </body>
