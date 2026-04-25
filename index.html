@@ -98,14 +98,16 @@
 
     <script>
 
-        // 類型快捷
-        function setFood(type) {
+        const API_BASE = "https://39i46pikt1.execute-api.us-east-1.amazonaws.com";
+        const USER_ID = "demo"; // 之後可以改登入
+
+        // 類型
+        function setFood(type){
         document.getElementById("food").value = type;
         }
 
-        // 🔥 原本推薦功能
-        function search() {
-
+        // 推薦（不用改）
+        function search(){
         let resultDiv = document.getElementById("result");
         resultDiv.innerHTML = "🔄 查詢中...";
 
@@ -113,115 +115,157 @@
         let food = document.getElementById("food").value;
         let budget = document.getElementById("budget").value;
 
-        let url = `https://39i46pikt1.execute-api.us-east-1.amazonaws.com/recommend?location=${location}&food_type=${food}&budget=${budget}&t=${Date.now()}`;
+        let url = `${API_BASE}/recommend?location=${location}&food_type=${food}&budget=${budget}`;
 
         fetch(url)
-        .then(res => res.json())
-        .then(data => {
-
-        let html = "";
-
-        data.recommendations.forEach(r => {
-        html += createCard(r.name, r.rating, r.reason, r.price, food, location);
+        .then(res=>res.json())
+        .then(data=>{
+        let html="";
+        data.recommendations.forEach(r=>{
+        html+=createCard(r.name,r.rating,r.reason,r.price,food,location);
         });
-
-        resultDiv.innerHTML = html;
+        resultDiv.innerHTML=html;
         });
         }
 
-        // 🔍 搜尋餐廳名稱
-        function searchByName() {
+        // 搜尋（不用改）
+        function searchByName(){
+        let keyword=document.getElementById("keyword").value;
+        if(!keyword){ alert("請輸入餐廳名稱"); return;}
 
-        let keyword = document.getElementById("keyword").value;
-
-        if (!keyword) {
-        alert("請輸入餐廳名稱");
-        return;
-        }
-
-        let url = `https://39i46pikt1.execute-api.us-east-1.amazonaws.com/recommend?location=${keyword}`;
+        let url=`${API_BASE}/recommend?location=${keyword}`;
 
         fetch(url)
-        .then(res => res.json())
-        .then(data => {
-
-        let html = "";
-
-        data.recommendations.forEach(r => {
-        html += createCard(r.name, r.rating, r.reason, r.price, "搜尋", keyword);
+        .then(res=>res.json())
+        .then(data=>{
+        let html="";
+        data.recommendations.forEach(r=>{
+        html+=createCard(r.name,r.rating,r.reason,r.price,"搜尋",keyword);
         });
-
-        document.getElementById("result").innerHTML = html;
+        document.getElementById("result").innerHTML=html;
         });
         }
 
-        // ⭐ 卡片生成（共用）
-        function createCard(name, rating, reason, price, type, location) {
+        // 卡片
+        function createCard(name,rating,reason,price,type,location){
         return `
         <div class="card">
         <h3>${name}</h3>
-        ⭐ ${rating}　💰 ${price || "?"}<br>
+        ⭐ ${rating}　💰 ${price||"?"}<br>
         💡 ${reason}<br><br>
 
         <button onclick="toggleFav('${name}','${type}','${location}')">
-        ⭐ 收藏 / 取消
+        ⭐ 收藏（雲端）
         </button>
-        </div>
-        `;
+        </div>`;
         }
 
-        // ⭐ 收藏切換
-        function toggleFav(name, type, location) {
+        // ⭐ 收藏（雲端）
+        function toggleFav(name,type,location){
 
-        let list = JSON.parse(localStorage.getItem("fav") || "[]");
-
-        let index = list.findIndex(item => item.name === name);
-
-        if (index !== -1) {
-        list.splice(index, 1);
-        alert("已取消收藏");
-        } else {
-        list.push({ name, type, location });
-        alert("已收藏！");
+        fetch(`${API_BASE}/saveFav`, {
+        method: "POST",
+        body: JSON.stringify({
+        user_id: USER_ID,
+        name: name,
+        type: type,
+        location: location
+        })
+        })
+        .then(()=>alert("已收藏（雲端）🔥"));
         }
 
-        localStorage.setItem("fav", JSON.stringify(list));
+        // 📂 讀收藏（雲端）
+        function showFav(){
+
+        fetch(`${API_BASE}/getFav?user_id=${USER_ID}`)
+        .then(res=>res.json())
+        .then(data=>{
+
+        if(!data.favorites || data.favorites.length===0){
+        document.getElementById("result").innerHTML="📭 沒有收藏";
+        return;
         }
 
-        // 🎲 隨機選
-        function randomPick() {
+        let html="<h2>⭐ 我的收藏（雲端）</h2>";
 
-        let list = JSON.parse(localStorage.getItem("fav") || "[]");
+        data.favorites.forEach(item=>{
+        html+=`
+        <div class="card">
+        <h3>${item.name}</h3>
+        📍 ${item.location}<br>
+        🍜 ${item.type}<br><br>
 
-        if (list.length === 0) {
+        <button onclick="removeFav('${item.name}')">
+        ❌ 取消收藏
+        </button>
+        </div>`;
+        });
+
+        document.getElementById("result").innerHTML=html;
+        });
+        }
+
+        // ❌ 刪收藏（雲端）
+        function removeFav(name){
+
+        fetch(`${API_BASE}/deleteFav`, {
+        method: "POST",
+        body: JSON.stringify({
+        user_id: USER_ID,
+        name: name
+        })
+        })
+        .then(()=>{
+        alert("已刪除");
+        showFav();
+        });
+        }
+
+        // 🎡 轉盤（改成用雲端資料）
+        function spinWheel(){
+
+        fetch(`${API_BASE}/getFav?user_id=${USER_ID}`)
+        .then(res=>res.json())
+        .then(data=>{
+
+        let list = data.favorites;
+
+        if(!list || list.length===0){
         alert("還沒收藏餐廳！");
         return;
         }
 
-        let location = document.getElementById("location").value;
-        let food = document.getElementById("food").value;
+        let resultDiv=document.getElementById("result");
+        let i=0;
+        let pick;
 
-        let filtered = list.filter(item => {
-        return (
-        (location === "" || item.location.includes(location)) &&
-        (food === "" || item.type.includes(food))
-        );
-        });
+        let interval=setInterval(()=>{
 
-        if (filtered.length === 0) {
-        filtered = list;
-        }
+        pick=list[Math.floor(Math.random()*list.length)];
 
-        let pick = filtered[Math.floor(Math.random() * filtered.length)];
+        resultDiv.innerHTML=`
+        <div class="card">
+        <h2>🎡 選擇中...</h2>
+        <h3>${pick.name}</h3>
+        </div>`;
 
-        document.getElementById("result").innerHTML = `
+        i++;
+
+        if(i>12){
+        clearInterval(interval);
+
+        resultDiv.innerHTML=`
         <div class="card">
         <h2>🎯 今天吃這個！</h2>
-        <h3>${pick.name}</h3>
+        <h1>${pick.name}</h1>
         📍 ${pick.location}<br>
         🍜 ${pick.type}
-        </div>
-        `;
+        </div>`;
+        }
+
+        },150);
+        });
         }
 
     </script>
