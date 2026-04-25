@@ -283,12 +283,15 @@ function spinWheel(){
         let location = document.getElementById("location").value.trim();
         let food = document.getElementById("food").value.trim();
 
-        // 🔥 篩選
-        let filtered = list.filter(item=>{
-            let matchLocation = !location || item.location.includes(location);
-            let matchType = !food || item.type.includes(food);
-            return matchLocation && matchType;
-        });
+    let filtered = list.filter(item => {
+    let itemLoc = item.location.replace("臺","台");
+    let inputLoc = location.replace("臺","台");
+
+    let matchLocation = !location || itemLoc.includes(inputLoc);
+    let matchType = !food || item.type.includes(food);
+
+    return matchLocation && matchType;
+});
 
         // ❌ 沒符合條件
         if(filtered.length === 0){
