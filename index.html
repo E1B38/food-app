@@ -117,15 +117,26 @@ function createCard(name,rating,reason,price,type,location){
 // 收藏
 function toggleFav(name,type,location){
     fetch(`${API_BASE}/saveFav`, {
-        method: "POST",
-        body: JSON.stringify({
-            user_id: USER_ID,
-            name: name,
-            type: type,
-            location: location
-        })
+    method: "POST",
+    headers: {
+        "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+        user_id: USER_ID,
+        name: name,
+        type: type,
+        location: location
     })
-    .then(()=>alert("已收藏🔥"));
+})
+.then(res => res.json())
+.then(data => {
+    console.log(data);
+    alert("已收藏🔥");
+})
+.catch(err => {
+    console.error(err);
+    alert("錯誤！");
+});
 }
 
 // 顯示收藏
