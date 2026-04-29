@@ -6,6 +6,12 @@
 <title>餐廳推薦</title>
 <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6.3.6/dist/amazon-cognito-identity.min.js"></script>
 <style>
+
+.active {
+    background:#007bff;
+    color:white;
+}
+
 body { font-family: Arial; background:#f5f5f5; margin:0; }
 .header {
     background:#007bff;
@@ -79,7 +85,12 @@ button {
 <button class="quick-btn" onclick="setFood('台式')">台式</button>
 </div>
 💰 預算
-<input id="budget" value="300">
+<div id="budgetBtns">
+    <button class="quick-btn" onclick="setBudget(this,'$')">$（便宜）</button>
+    <button class="quick-btn" onclick="setBudget(this,'$$')">$$（中等）</button>
+    <button class="quick-btn" onclick="setBudget(this,'$$$')">$$$（偏貴）</button>
+    <button class="quick-btn" onclick="setBudget(this,'$$$$')">$$$$（高級）</button>
+</div>
 <button class="primary" onclick="search()">🍜 推薦餐廳</button>
 <button onclick="spinWheel()">🎲 隨機選擇</button>
 <button onclick="showFav()">⭐ 我的收藏</button>
@@ -87,10 +98,90 @@ button {
 </div>
 <div id="result"></div>
 <script>
+
+// 切換到編輯模式
+function editFav(index) {
+    document.getElementById(`display-${index}`).style.display = "none";
+    document.getElementById(`edit-form-${index}`).style.display = "block";
+}
+
+// 取消編輯
+function cancelEdit(index) {
+    document.getElementById(`display-${index}`).style.display = "block";
+    document.getElementById(`edit-form-${index}`).style.display = "none";
+}
+
+// 儲存編輯後的數據到後端
+function saveEdit(index, name) {
+    let id = localStorage.getItem("user_id");
+    let newLoc = document.getElementById(`edit-loc-${index}`).value.trim();
+    let newType = document.getElementById(`edit-type-${index}`).value.trim();
+
+    fetch(`${API_BASE}/updateFav`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            user_id: id,
+            name: name,
+            location: newLoc,
+            type: newType
+        })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.msg === "updated") {
+            alert("修改成功！");
+            showFav(); // 重新整理列表
+        } else {
+            alert("修改失敗：" + (data.error || "未知錯誤"));
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        alert("網路錯誤");
+    });
+}
+
+function openModal(url) {
+    const modal = document.getElementById("photoModal");
+    const modalImg = document.getElementById("modalImg");
+    
+    modal.style.display = "flex"; // 顯示彈窗
+    modalImg.src = url;           // 將圖片網址帶入放大圖中
+}
+
 function getPhoto(photoRef){
     return `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${photoRef}&key=AIzaSyDdJKaLMG23gScQcpUzc0npT6pGY-FHT-E`;
 }
 const API_BASE = "https://39i46pikt1.execute-api.us-east-1.amazonaws.com";
+
+let selectedBudget = "";
+
+function setBudget(btn, b) {
+    // 檢查點擊的是不是已經選中的那個按鈕
+    if (selectedBudget === b) {
+        // 如果是，就取消選擇
+        selectedBudget = "";
+        btn.classList.remove("active");
+    } else {
+        // 如果不是，就切換到新的預算
+        selectedBudget = b;
+
+        // 先清除所有按鈕的 active 狀態
+        let buttons = document.querySelectorAll("#budgetBtns button");
+        buttons.forEach(btnEl => btnEl.classList.remove("active"));
+
+        // 幫目前的按鈕加上 active
+        btn.classList.add("active");
+    }
+    
+    console.log("目前選擇的預算層級:", selectedBudget ? budgetToLevel(selectedBudget) : "無");
+}
+
+function budgetToLevel(b){
+    return b.length;
+}
+
 const poolData = {
     UserPoolId: "us-east-1_FEseKdrJX",
     ClientId: "362d0n7u8becrcmqfn0ivvmoau"
@@ -176,37 +267,52 @@ function setFood(type){
     food.value = type;
 }
 // 推薦
-function search(){
-    result.innerHTML="🔄 查詢中...";
+function search() {
+    result.innerHTML = "🔄 查詢中...";
     let loc = document.getElementById("location").value.trim();
     let foodType = document.getElementById("food").value.trim();
-    let bud = document.getElementById("budget").value.trim();
+    let bud = selectedBudget;
     let url = `${API_BASE}/recommend?`;
-    if(loc) url += `location=${loc}&`;
-    if(foodType) url += `food_type=${foodType}&`;
-    if(bud) url += `budget=${bud}`;
+
+    if (loc) url += `location=${loc}&`;
+    if (foodType) url += `food_type=${foodType}&`;
+    if (bud) url += `budget=${budgetToLevel(bud)}&`;
+
     fetch(url)
-    .then(r=>r.json())
-    .then(async data=>{
-    let html = "";
+        .then(r => r.json())
+        .then(async data => {
+            console.log(data);
 
-    for (let r of data.recommendations){
-    html += await createCardWithImage(
-    r.name,
-    r.rating,
-    r.reason,
-    r.price,
-    "搜尋",
-    keyword.value
- );
-}
+            let list = data.recommendations;
 
-    result.innerHTML = html;
-})
-    .catch(err=>{
-        console.error(err);
-        result.innerHTML="❌ 發生錯誤";
-    });
+            // ⭐ 加入判斷：如果清單是空的或不存在
+            if (!list || list.length === 0) {
+                result.innerHTML = `
+                    <div class="card" style="text-align:center; padding: 40px;">
+                        <h2 style="color: #666;">😢 找不到符合條件的餐廳</h2>
+                        <p>您可以嘗試更換地點、類型或調整預算範圍再試試看！</p>
+                    </div>`;
+                return; // 結束函數，不執行後面的迴圈
+            }
+
+            let html = "";
+            for (let r of list) {
+                html += await createCardWithImage(
+                    r.name,
+                    r.rating,
+                    r.reason,
+                    r.price,
+                    "搜尋",
+                    loc // 這裡改用 loc 變數比較準確
+                );
+            }
+
+            result.innerHTML = html;
+        })
+        .catch(err => {
+            console.error(err);
+            result.innerHTML = "❌ 發生錯誤";
+        });
 }
 // 搜尋
 function searchByName(){
@@ -253,10 +359,12 @@ async function createCardWithImage(name,rating,reason,price,type,location){
                 let url = getPhoto(p.photo_reference);
                 return `
                 <img src="${url}" 
+                onclick="openModal('${url}')"
                 style="
-                    height:150px;
-                    border-radius:10px;
-                    flex-shrink:0;
+                        height:150px;
+                        border-radius:10px;
+                        flex-shrink:0;
+                    cursor: pointer;
                 ">
                 `;
             }).join("")}
@@ -291,13 +399,23 @@ function showFav(){
             return;
         }
 
-        data.favorites.forEach(i=>{
+        data.favorites.forEach((i, index)=>{
             html+=`
-            <div class="card">
+            <div class="card" id="fav-card-${index}">
                 <h3>🍽️ ${i.name}</h3>
-                📍 ${i.location}<br>
-                🍜 ${i.type}<br><br>
-                <button onclick="removeFav('${i.name}')">❌ 取消收藏</button>
+                <div id="display-${index}">
+                    📍 <span id="loc-text-${index}">${i.location}</span><br>
+                    🍜 <span id="type-text-${index}">${i.type}</span><br><br>
+                    <button onclick="editFav(${index})">✏️ 編輯數據</button>
+                </div>
+                <div id="edit-form-${index}" style="display:none;">
+                    📍 地點：<input id="edit-loc-${index}" value="${i.location}"><br>
+                    🍜 類型：<input id="edit-type-${index}" value="${i.type}"><br>
+                    <button class="primary" onclick="saveEdit(${index}, '${i.name}')">💾 儲存</button>
+                    <button onclick="cancelEdit(${index})">取消</button>
+                </div>
+                <br>
+                <button style="background:#ff4d4d; color:white;" onclick="removeFav('${i.name}')">❌ 取消收藏</button>
             </div>`;
         });
 
@@ -404,5 +522,19 @@ function removeFav(name){
 
 checkUI();
 </script>
+<div id="photoModal" onclick="this.style.display='none'" style="
+    display: none; 
+    position: fixed; 
+    z-index: 9999; 
+    left: 0; top: 0; 
+    width: 100%; height: 100%; 
+    background-color: rgba(0,0,0,0.9); 
+    cursor: zoom-out;
+    align-items: center;
+    justify-content: center;
+">
+    <img id="modalImg" style="max-width: 90%; max-height: 90%; border-radius: 5px; box-shadow: 0 0 20px rgba(255,255,255,0.2);">
+
+</div>
 </body>
 </html>
