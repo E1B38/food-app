@@ -87,6 +87,9 @@ button {
 </div>
 <div id="result"></div>
 <script>
+function getPhoto(photoRef){
+    return `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${photoRef}&key=AIzaSyDdJKaLMG23gScQcpUzc0npT6pGY-FHT-E`;
+}
 const API_BASE = "https://39i46pikt1.execute-api.us-east-1.amazonaws.com";
 const poolData = {
     UserPoolId: "us-east-1_FEseKdrJX",
@@ -184,18 +187,22 @@ function search(){
     if(bud) url += `budget=${bud}`;
     fetch(url)
     .then(r=>r.json())
-    .then(data=>{
-        console.log(data);
-        if(!data.recommendations || data.recommendations.length===0){
-            result.innerHTML="❌ 沒有找到餐廳";
-            return;
-        }
-        let html="";
-        data.recommendations.forEach(r=>{
-            html+=createCard(r.name,r.rating,r.reason,r.price,foodType,loc);
-        });
-        result.innerHTML=html;
-    })
+    .then(async data=>{
+    let html = "";
+
+    for (let r of data.recommendations){
+    html += await createCardWithImage(
+    r.name,
+    r.rating,
+    r.reason,
+    r.price,
+    "搜尋",
+    keyword.value
+ );
+}
+
+    result.innerHTML = html;
+})
     .catch(err=>{
         console.error(err);
         result.innerHTML="❌ 發生錯誤";
@@ -206,38 +213,70 @@ function searchByName(){
     if(!keyword.value) return alert("請輸入餐廳名稱");
     fetch(`${API_BASE}/recommend?location=${keyword.value}`)
     .then(r=>r.json())
-    .then(data=>{
-        let html="";
-        data.recommendations.forEach(r=>{
-            html+=createCard(r.name,r.rating,r.reason,r.price,"搜尋",keyword.value);
-        });
-        result.innerHTML=html;
-    });
+    .then(async data=>{
+    let html = "";
+
+    for (let r of data.recommendations){
+    html += await createCardWithImage(
+    r.name,
+    r.rating,
+    r.reason,
+    r.price,
+    "搜尋",
+    keyword.value
+);
+}
+
+    result.innerHTML = html;
+})
 }
 // 卡片
-function createCard(name,rating,reason,price,type,location){
-return `
-<div class="card">
-<h3>🍽️ ${name}</h3>
-⭐ ${rating}　💰 ${price||"?"}<br>
-💡 ${reason}<br><br>
-<button onclick="toggleFav('${name}','${type}','${location}')">⭐ 收藏</button>
-</div>`;
-}
-// 收藏
-function toggleFav(name,type,location){
-    let id = localStorage.getItem("user_id");
+async function createCardWithImage(name,rating,reason,price,type,location){
+    let res = await fetch(
+`https://y7rb7q6u23.execute-api.us-east-1.amazonaws.com/default/getRestaurantPhoto?name=${name}`
+);
+    let data = await res.json();
+    console.log(data);
+    let photosHTML = "";
 
-    // 🔥 強制分類（關鍵）
-    if(type === "搜尋"){
-        type = document.getElementById("food").value || "其他";
+    if(data.candidates[0] && data.candidates[0].photos){
+        let photos = data.candidates[0].photos;
+
+        photosHTML += `
+        <div style="
+            display:flex;
+            overflow-x:auto;
+            gap:10px;
+            padding:5px;
+        ">
+            ${photos.slice(0,5).map(p=>{
+                let url = getPhoto(p.photo_reference);
+                return `
+                <img src="${url}" 
+                style="
+                    height:150px;
+                    border-radius:10px;
+                    flex-shrink:0;
+                ">
+                `;
+            }).join("")}
+        </div>
+        `;
     }
 
-    fetch(`${API_BASE}/saveFav`,{
-        method:"POST",
-        headers:{ "Content-Type":"application/json" },
-        body:JSON.stringify({user_id:id,name,type,location})
-    }).then(()=>alert("已收藏🔥"));
+    return `
+<div class="card">
+    <h3>🍽️ ${name}</h3>
+
+    ${photosHTML}
+
+    ⭐ ${rating}　💰 ${price || "?"}<br>
+    💡 ${reason}<br><br>
+
+    <button onclick="toggleFav('${name}','${type}','${location}')">
+        ⭐ 收藏
+    </button>
+</div>`;
 }
 // 收藏列表
 function showFav(){
